@@ -1,0 +1,12 @@
+puma install error
+
+https://thoughtfulapps.com/articles/rails/puma-implicitly-declaring-library-function-error
+
+bundle config build.puma --with-cflags="-Wno-error=implicit-function-declaration"
+
+Heroku
+https://devcenter.heroku.com/articles/deploying-rails-applications-with-the-puma-web-server
+
+Github
+https://docs.github.com/en/get-started/getting-started-with-git/caching-your-github-credentials-in-git
+
