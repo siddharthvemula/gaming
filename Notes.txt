@@ -9,4 +9,9 @@ https://devcenter.heroku.com/articles/deploying-rails-applications-with-the-puma
 
 Github
 https://docs.github.com/en/get-started/getting-started-with-git/caching-your-github-credentials-in-git
+https://docs.github.com/en/get-started/getting-started-with-git/about-remote-repositories#cloning-with-https-urls
 
+Alternatives to Heroku/Pusher
+https://flatirons.com/blog/top-alternatives-to-heroku-free-tier/
+https://render.com/pricing
+https://www.getbeamer.com/push-notifications
