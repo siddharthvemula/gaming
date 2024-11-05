@@ -17,6 +17,8 @@ module Gaming
     config.autoload_lib(ignore: %w(assets tasks))
     
     config.assets.initialize_on_precompile = false
+    
+    config.pusher = config_for(:pusher)
 
     # Configuration for the application, engines, and railties goes here.
     #

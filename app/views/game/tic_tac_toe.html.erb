@@ -1,0 +1,38 @@
+<h1>Tic Tac Toe</h1>
+
+<script type="text/javascript">
+  var pusherKey = '<%= Rails.configuration.pusher[:key] %>';
+  var pusherCluster = '<%= Rails.configuration.pusher[:cluster] %>';
+  $( document ).ready(function() {
+    var pusher = new Pusher(pusherKey, {
+      cluster: pusherCluster
+    });
+    var channel = pusher.subscribe("my-channel");
+    channel.bind("my-event", (data) => {
+      processPushData(data);
+    });
+  });
+  function sendMessage() {
+    $.post( "/push/send_message", {username: $('#username').val(), message: $('#message').val()}, function( data ) {
+      //console.log("Submitted");
+
+    });
+  }
+  function processPushData(data) {
+    addMessageLog(data.username, data.message);
+  }
+  
+  function addMessageLog(username, message) {
+    var msg = new Date() + "\nSent by: " + (username == $('#username').val() ? "ME" : "OPPONENT") + "\n" + message + "\n\n" + $('#messages').val()
+    $('#messages').val(msg);
+  }
+</script>
+
+UserName: <input name="username" id="username" type="text">
+<br/>
+<br/>
+Message: <input name="message" id="message" type="text"> <input type="button" value="Send" onclick="sendMessage()"/>
+<br/>
+<br/>
+<textarea id="messages" cols="500" rows="20">
+</textarea>

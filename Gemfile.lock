@@ -108,6 +108,7 @@ GEM
     erubi (1.13.0)
     globalid (1.2.1)
       activesupport (>= 6.1)
+    httpclient (2.8.3)
     i18n (1.14.6)
       concurrent-ruby (~> 1.0)
     importmap-rails (2.0.3)
@@ -135,6 +136,7 @@ GEM
     mini_mime (1.1.5)
     minitest (5.25.1)
     msgpack (1.7.3)
+    multi_json (1.15.0)
     mutex_m (0.2.0)
     net-imap (0.5.0)
       date
@@ -155,6 +157,11 @@ GEM
     public_suffix (6.0.1)
     puma (6.4.3)
       nio4r (~> 2.0)
+    pusher (2.0.3)
+      httpclient (~> 2.8)
+      multi_json (~> 1.15)
+      pusher-signature (~> 0.1.8)
+    pusher-signature (0.1.8)
     racc (1.8.1)
     rack (3.1.8)
     rack-session (2.0.0)
@@ -251,6 +258,7 @@ DEPENDENCIES
   importmap-rails
   jbuilder
   puma
+  pusher
   rails (~> 7.1.1)
   selenium-webdriver
   sprockets-rails
