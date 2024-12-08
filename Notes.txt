@@ -15,3 +15,8 @@ Alternatives to Heroku/Pusher
 https://flatirons.com/blog/top-alternatives-to-heroku-free-tier/
 https://render.com/pricing
 https://www.getbeamer.com/push-notifications
+
+
+Sid's Computer
+https://github.com/rvm/rvm/issues/5507
+
