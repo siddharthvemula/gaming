@@ -3,17 +3,18 @@
 <script type="text/javascript">
   var pusherKey = '<%= Rails.configuration.pusher[:key] %>';
   var pusherCluster = '<%= Rails.configuration.pusher[:cluster] %>';
+  var eventName = 'my-event2';
   $( document ).ready(function() {
     var pusher = new Pusher(pusherKey, {
       cluster: pusherCluster
     });
     var channel = pusher.subscribe("my-channel");
-    channel.bind("my-event", (data) => {
+    channel.bind(eventName, (data) => {
       processPushData(data);
     });
   });
   function sendMessage() {
-    $.post( "/push/send_message", {username: $('#username').val(), message: $('#message').val()}, function( data ) {
+    $.post( "/push/send_message", {eventName: eventName, username: $('#username').val(), message: $('#message').val()}, function( data ) {
       //console.log("Submitted");
 
     });
@@ -36,3 +37,11 @@ Message: <input name="message" id="message" type="text"> <input type="button" va
 <br/>
 <textarea id="messages" cols="500" rows="20">
 </textarea>
+
+<table>
+<tr>
+<td>
+my initial tic tac
+</td>
+</tr>
+</table>
