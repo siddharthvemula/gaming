@@ -14,11 +14,10 @@ class PushController < ApplicationController
   end
   
   def send_message
-    username = params[:username]
-    message = params[:message]
-    eventName = params[:eventName]
-    $stderr.puts "Username: #{username}"
-    @pusher.trigger('my-channel', eventName, {username: username, message: message})
+    data = params[:data]
+    # message = params[:message]
+    $stderr.puts "Data: #{data}"
+    @pusher.trigger('my-channel', 'my-event', data)
     render json: {success: true}
   end
 end

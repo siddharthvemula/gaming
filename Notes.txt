@@ -20,3 +20,4 @@ https://www.getbeamer.com/push-notifications
 Sid's Computer
 https://github.com/rvm/rvm/issues/5507
 
+be rails g controller Push index
