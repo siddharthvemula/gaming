@@ -5,4 +5,9 @@ class GameController < ApplicationController
   def tic_tac_toe
     render layout: "game"
   end
+
+  
+  def checkers
+    render layout: "game"
+  end
 end

@@ -11,6 +11,7 @@ Rails.application.routes.draw do
   resources :game do
     collection do
       get 'tic_tac_toe'
+      get 'checkers'
     end
   end
 
@@ -21,5 +22,5 @@ Rails.application.routes.draw do
   get "up" => "rails/health#show", as: :rails_health_check
 
   # Defines the root path route ("/")
-  # root "posts#index"
+  root "game#index"
 end
