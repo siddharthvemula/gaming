@@ -190,7 +190,7 @@
         this.board[this.selectedX][this.selectedY].isSelected = false;
         sendMoveToOpponent(this,this.board[this.selectedX][this.selectedY].color, x, y, this.selectedX, this.selectedY, this.board[this.selectedX][this.selectedY].isKinged);
         this.placePiece(this.board[this.selectedX][this.selectedY].color, x, y, this.selectedX, this.selectedY, this.board[this.selectedX][this.selectedY].isKinged);
-        this.findWhatToFlip(x,y);
+        this.findWhatToFlip("local", x, y);
         this.validMoves = [];
         this.promoteChecker();
         if (!this.captured) {
@@ -220,6 +220,9 @@
       isKinged = (isKinged == "false") ? isKinged = false : isX = true;
       console.log(isKinged);
       this.placePiece(color, x, y, ogX, ogY, isKinged);
+      this.findWhatToFlip("network", x, y, ogX, ogY);
+      this.promoteChecker();
+      //Add part about where if checker captures piece then they still have their turn
       this.changeTurn();
       this.render();
     }
@@ -335,16 +338,30 @@
     this.board[x][y].isKinged = isPieceKinged;
     this.board[ogX][ogY] = null;
   }
-  Checkers.prototype.findWhatToFlip = function (x, y) {
+  Checkers.prototype.findWhatToFlip = function (source, x, y, ogX, ogY) {
     x = parseInt(x);
     y = parseInt(y);
-    var middleX = Math.sign(x - this.selectedX)
-    var middleY = Math.sign(y - this.selectedY)
-    if (Math.abs(x - this.selectedX) == 1 && Math.abs(y - this.selectedY) == 1) {
-      this.captured = false;
-    } else {
-      this.board[this.selectedX + middleX][this.selectedY + middleY] = null;
-      this.captured = true;
+    ogX = parseInt(ogX);
+    ogY = parseInt(ogY);
+    if (source == "local") {
+      var middleX = Math.sign(x - this.selectedX)
+      var middleY = Math.sign(y - this.selectedY)
+      if (Math.abs(x - this.selectedX) == 1 && Math.abs(y - this.selectedY) == 1) {
+        this.captured = false;
+      } else {
+        this.board[this.selectedX + middleX][this.selectedY + middleY] = null;
+        this.captured = true;
+      }
+    } else if (source == "network") {
+      console.log("Flip - network")
+      var middleX = Math.sign(x - ogX);
+      var middleY = Math.sign(y - ogY)
+      if (Math.abs(x - ogX) == 1 && Math.abs(y - ogY) == 1) {
+        this.captured = false;
+      } else {
+        this.board[ogX + middleX][ogY + middleY] = null;
+        this.captured = true;
+      }
     }
   }
   Checkers.prototype.isOnBoard = function (x,y) {
