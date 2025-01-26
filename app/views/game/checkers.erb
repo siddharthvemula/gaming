@@ -1,0 +1,690 @@
+<h1>Checkers</h1>
+<title>Checkers</title>
+<style type="text/css">
+.red {
+  background-color: red;
+  width: 40px;
+  height: 40px;
+}
+
+.black {
+  background-color: black;
+  width: 40px;
+  height: 40px;
+}
+.validMoves {
+    background-color: rgba(0,255,0);
+}
+</style>
+
+<script type="text/javascript">
+//PUSHER
+  var pusherKey = '<%= Rails.configuration.pusher[:key] %>';
+  var pusherCluster = '<%= Rails.configuration.pusher[:cluster] %>';
+  var eventName = 'my-event';
+  $( document ).ready(function() {
+    var pusher = new Pusher(pusherKey, {
+      cluster: pusherCluster
+    });
+    var channel = pusher.subscribe("my-channel");
+    channel.bind(eventName, (data) => {
+      (data);
+    });
+  });
+  function sendMessage() {
+    $.post( "/push/send_message", {eventName: eventName, username: $('#username').val(), message: $('#message').val()}, function( data ) {
+      //console.log("Submitted");
+
+    });
+  }
+
+  function addMessageLog(username, message) {
+    var msg = new Date() + "\nSent by: " + (username == $('#username').val() ? "ME" : "OPPONENT") + "\n" + message + "\n\n" + $('#messages').val()
+    $('#messages').val(msg);
+  } 
+
+  $( document ).ready(function() {
+    var pusher = new Pusher(pusherKey, {
+      cluster: pusherCluster
+    });
+    var channel = pusher.subscribe("my-channel");
+    channel.bind('my-event', (data) => {
+      processPushData(checkers, data);
+    });
+  });
+
+  function processPushData(thisObj, data) {
+    //addMessageLog(data.username, data.message);
+    console.log(data);
+    if (data.color != whoAmI && data.type == 'move') {
+      thisObj.makeMove('network', data.color, data.x, data.y, data.ogX, data.ogY, data.isKinged);
+    }
+  }
+
+  function sendMoveToOpponent(thisObj, color, x, y, ogX, ogY, isKinged) {
+    var payload = {
+      data: {type: 'move', color: color, x: x, y: y, ogX: ogX, ogY: ogY, isKinged: isKinged}
+    };
+    $.post( "/push/send_message", payload, function( data ) {
+      //console.log("Submitted");
+    });
+    processPushData(thisObj, payload);
+  }
+
+  //Checkers Code
+  var BOARD_SIZE = 8;
+  var whoAmI = null;
+  var home = "file:///home/chronos/u-ac433ebf84a5304cffd17fdef62bcdb8294d57ef/MyFiles/New%20folder/programming/checkers.html"
+  var Piece = function(color) {
+    this.locked = false;
+    this.color = color;
+    this.isSelected = false;
+    this.isKinged = false;
+  }
+  var Checkers = function () {
+      this.turn = "red";
+      this.selectedX = -1;
+      this.selectedY = -1;
+      this.validMoves = [];
+      this.totalValid = 0;
+      this.capture = false;
+      this.board = [];
+      for (var i = 0; i < 8; i++) {
+        this.board.push(new Array(8));
+      }
+      var myCheckers = this;
+      myCheckers.setUpBoard();
+      myCheckers.render();
+      for (var i = 0; i < 8; i++) {
+        for (var j = 0; j < 8; j++) {
+          var cell = this.getCell(i,j);
+          cell.setAttribute('x', i);
+          cell.setAttribute('y', j);
+          cell.addEventListener("click", function(e) {
+            var x = this.getAttribute('x');
+            var y = this.getAttribute('y');
+            x = parseInt(x);
+            y = parseInt(y);
+            myCheckers.handleClick(x, y);
+          });
+        };
+      };
+    };
+  function setWhoAmI() {
+    whoAmI = document.getElementById('playerColor').value;
+  }
+  Checkers.prototype.setUpBoard = function () {
+    this.board[0][1] = new Piece("white");
+    this.board[0][3] = new Piece("white");
+    this.board[0][5] = new Piece("white");
+    this.board[0][7] = new Piece("white");
+    this.board[1][0] = new Piece("white");
+    this.board[1][2] = new Piece("white");
+    this.board[1][4] = new Piece("white");
+    this.board[1][6] = new Piece("white");
+    this.board[2][1] = new Piece("white");
+    this.board[2][3] = new Piece("white");
+    this.board[2][5] = new Piece("white");
+    this.board[2][7] = new Piece("white");
+    this.board[5][0] = new Piece("red");
+    this.board[5][2] = new Piece("red");
+    this.board[5][4] = new Piece("red");
+    this.board[5][6] = new Piece("red");
+    this.board[6][1] = new Piece("red");
+    this.board[6][3] = new Piece("red");
+    this.board[6][5] = new Piece("red");
+    this.board[6][7] = new Piece("red");
+    this.board[7][0] = new Piece("red");
+    this.board[7][2] = new Piece("red");
+    this.board[7][4] = new Piece("red");
+    this.board[7][6] = new Piece("red");
+  };
+  Checkers.prototype.changeTurn = function () {
+    if (this.turn == "red") {
+      this.turn = "white";
+    } else {
+      this.turn = "red";
+    }
+  }
+  Checkers.prototype.promoteChecker = function () {
+    for (var i = 0; i < BOARD_SIZE; i++) {
+      if (this.board[0][i] != null && this.board[0][i].color == "red") {
+        this.board[0][i].isKinged = true;
+      }
+      if (this.board[7][i] != null && this.board[7][i].color == "white") {
+        this.board[7][i].isKinged = true;
+      }
+    }
+  }
+  Checkers.prototype.handleClick = function (x, y) {
+    if (this.turn == whoAmI) {
+      if (this.board[x][y] == null) {
+        this.makeMove('local', whoAmI, x, y, this.selectedX, this.selectedY, this.board[this.selectedX][this.selectedY].isKinged);
+      } else if (this.board[x][y].isSelected == false) {
+          //select piece
+          if (!this.isAPieceAlreadySelected()) {
+            if (this.turn == this.board[x][y].color) {
+              this.selectedX = x;
+              this.selectedY = y;
+              this.board[x][y].isSelected = true;
+              this.findAllValid();
+              this.findValidMoves(x, y);
+            }
+          }
+      } else {
+        //deselect piece
+        if (!this.board[x][y].locked) {
+          this.board[x][y].isSelected = false;
+          this.validMoves = [];
+        }
+      }
+      this.isGameOver();
+      this.render();
+      this.printState();
+    }
+  };
+  Checkers.prototype.makeMove = function (source, color, x, y, ogX, ogY, isKinged) {
+    //place piece
+    if (source == 'local') {
+      if (this.isValid(x, y)) {
+        this.board[this.selectedX][this.selectedY].isSelected = false;
+        sendMoveToOpponent(this,this.board[this.selectedX][this.selectedY].color, x, y, this.selectedX, this.selectedY, this.board[this.selectedX][this.selectedY].isKinged);
+        this.placePiece(this.board[this.selectedX][this.selectedY].color, x, y, this.selectedX, this.selectedY, this.board[this.selectedX][this.selectedY].isKinged);
+        this.findWhatToFlip(x,y);
+        this.validMoves = [];
+        this.promoteChecker();
+        if (!this.captured) {
+          this.changeTurn();
+          this.selectedX = -1;
+          this.selectedY = -1;
+          this.board[x][y].isSelected = false;
+        } else {
+          this.findValidMoves(x, y);
+          if (this.validMoves.length == 0) {
+            this.board[x][y].locked = false;
+            this.selectedX = -1;
+            this.selectedY = -1;
+            this.board[x][y].isSelected = false;
+            this.changeTurn();
+          } else {
+            this.selectedX = x;
+            this.selectedY = y;
+            this.board[x][y].locked = true;
+            this.board[x][y].isSelected = true;
+          }
+          this.isGameOver();
+          this.captured = false;
+        }
+      }
+    } else if (source == 'network') {
+      isKinged = (isKinged == "false") ? isKinged = false : isX = true;
+      console.log(isKinged);
+      this.placePiece(color, x, y, ogX, ogY, isKinged);
+      this.changeTurn();
+      this.render();
+    }
+  };  
+  Checkers.prototype.findValidMoves = function (x, y) {
+    var oppositeColor = (this.board[x][y].color == "red") ? "white" : "red";
+    if (oppositeColor == "white" || this.board[x][y].isKinged) {
+      if (this.isOnBoard(x-1, y+1) && this.board[x-1][y+1] != null && this.board[x-1][y+1].color == oppositeColor) {
+        if (this.isOnBoard(x-2, y+2) && this.board[x-2][y+2] == null) {
+          this.validMoves.push({x: x - 2, y: y + 2})
+          this.totalValid++;
+        }
+      } else if (this.isOnBoard(x-1, y+1) && this.board[x-1][y+1] == null && !this.captured) {
+          this.validMoves.push({x: x - 1, y: y + 1})
+          this.totalValid++;
+      }
+      if (this.isOnBoard(x-1, y-1) && this.board[x-1][y-1] != null && this.board[x-1][y-1].color == oppositeColor) {
+        if (this.isOnBoard(x-2, y-2) && this.board[x-2][y-2] == null) {
+          this.validMoves.push({x: x - 2, y: y - 2})
+          this.totalValid++;
+        }
+      } else if (this.isOnBoard(x-1, y-1) && this.board[x-1][y-1] == null && !this.captured) {
+          this.validMoves.push({x: x - 1, y: y - 1})
+          this.totalValid++;
+      }
+    }
+    if (oppositeColor == "red" || this.board[x][y].isKinged) {
+      if (this.isOnBoard(x+1, y+1) && this.board[x+1][y+1] != null && this.board[x+1][y+1].color == oppositeColor) {
+        if (this.isOnBoard(x+2, y+2) && this.board[x+2][y+2] == null) {
+          this.validMoves.push({x: x + 2, y: y + 2})
+          this.totalValid++;
+        }
+      } else if (this.isOnBoard(x+1, y+1) && this.board[x+1][y+1] == null && !this.captured) {
+          this.validMoves.push({x: x + 1, y: y + 1})
+          this.totalValid++;
+      }
+      if (this.isOnBoard(x+1, y-1) && this.board[x+1][y-1] != null && this.board[x+1][y-1].color == oppositeColor) {
+        if (this.isOnBoard(x+2, y-2) && this.board[x+2][y-2] == null) {
+          this.validMoves.push({x: x + 2, y: y - 2})
+          this.totalValid++;
+        }
+      } else if (this.isOnBoard(x+1, y-1) && this.board[x+1][y-1] == null && !this.captured) {
+          this.validMoves.push({x: x + 1, y: y - 1})
+          this.totalValid++;
+      }
+    }
+  }
+  Checkers.prototype.findAllValid = function () {
+    var oppositeColor = (this.turn == "red") ? "white" : "red";
+    for (var i = 0; i < BOARD_SIZE; i++) {
+      for (var j = 0; j < BOARD_SIZE; j++) {
+        if (this.board[i][j] != null && this.board[i][j].color != oppositeColor) {
+          this.findValidMoves(i,j)
+          if (this.totalValid != 0) {
+            this.validMoves = [];
+            this.totalValid = 0;
+            return;
+          }
+        }
+      }
+    }
+    this.displayWinner(oppositeColor)
+  }
+  Checkers.prototype.displayWinner = function (color) {
+    document.getElementById("winner").style = "color:blue; display: block";
+    if (color == "red") {
+      document.getElementById("whoWon").innerHTML = "Red";
+    } else if (color == "white") {
+      document.getElementById("whoWon").innerHTML = "White";
+    } else {
+      document.getElementById("winner").style = "color:blue; display: none";
+    }
+  };
+  Checkers.prototype.isGameOver = function () {
+    var redAlive = 0;
+    var whiteAlive = 0;
+    for (var i = 0; i < BOARD_SIZE; i++) {
+      for (var j = 0; j < this.board[i].length; j++) {
+        if (this.board[i][j] != null) {
+          if (this.board[i][j].color == "red") {
+            redAlive++;
+          } else {
+            whiteAlive++;
+          }
+        }
+      }
+    }
+    if (redAlive == 0) {
+      this.displayWinner("white")
+    } else if (whiteAlive == 0) {
+      this.displayWinner("red")
+    }
+  };
+  Checkers.prototype.isValid = function (x, y) {
+    for (var i = 0; i < this.validMoves.length; i++) {
+      if (x == this.validMoves[i].x && y == this.validMoves[i].y) {
+        return true;
+      }
+    }
+  }
+  Checkers.prototype.isAPieceAlreadySelected = function () {
+    for (var i = 0; i < BOARD_SIZE; i++) {
+      for (var j = 0; j < this.board[i].length; j++) {
+        if (this.board[i][j] != null && this.board[i][j].isSelected) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  Checkers.prototype.placePiece = function (color, x, y, ogX, ogY, isPieceKinged) {
+    this.board[x][y] = new Piece(color)
+    this.board[x][y].isKinged = isPieceKinged;
+    this.board[ogX][ogY] = null;
+  }
+  Checkers.prototype.findWhatToFlip = function (x, y) {
+    x = parseInt(x);
+    y = parseInt(y);
+    var middleX = Math.sign(x - this.selectedX)
+    var middleY = Math.sign(y - this.selectedY)
+    if (Math.abs(x - this.selectedX) == 1 && Math.abs(y - this.selectedY) == 1) {
+      this.captured = false;
+    } else {
+      this.board[this.selectedX + middleX][this.selectedY + middleY] = null;
+      this.captured = true;
+    }
+  }
+  Checkers.prototype.isOnBoard = function (x,y) {
+    if (x >= 0 && x < BOARD_SIZE) {
+      if (y >= 0 && y < BOARD_SIZE) {
+        return true;
+      }
+    }
+    return false
+  }
+  Checkers.prototype.render = function () {
+    for (var i = 0; i < 8; i++) {
+      for (var j = 0; j < 8; j++) {
+        if (this.board[i][j] != null) {
+          var image = this.getImage(i,j);
+          if (this.board[i][j].color == "white") {
+            if (this.board[i][j].isKinged) {
+              image.src = "https://thumbs.dreamstime.com/z/white-button-chrome-frame-round-glass-shiny-d-icon-white-button-chrome-frame-round-glass-shiny-d-icon-vector-119061735.jpg"
+            } else {
+              image.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Circle_-_black_simple.svg/768px-Circle_-_black_simple.svg.png";
+            }
+          } else if (this.board[i][j].color == "red") {
+            if (this.board[i][j].isKinged) {
+              image.src = "https://img.favpng.com/22/11/0/circle-design-product-png-favpng-j80D5aX6iXBz670iZxwZRgSpj.jpg"
+            } else {
+              image.src = "https://www.pngkit.com/png/full/79-790256_png-red-circle-red-point-transparent-background.png";
+            }
+          }
+          image.height = 50;
+          image.width = 50;
+          if (this.board[i][j].isSelected) {
+            var cell = this.getCell(i,j);
+            cell.style.borderWidth = "medium";
+            cell.style.borderColor = "blue";
+            cell.style.borderStyle = "solid";
+          } else {
+            var cell = this.getCell(i,j)
+            cell.style.borderStyle = "none";
+            cell.style.borderColor = "none";
+            cell.style.borderStyle = "none";
+          }
+            this.showOrHideValidMove();
+        } else {
+          var cell = this.getCell(i,j)
+          var image = this.getImage(i, j);
+          cell.style.borderStyle = "none";
+          cell.style.borderColor = "none";
+          cell.style.borderStyle = "none";
+          if (this.board[i][j] == null && document.getElementById(image.src) != home) {
+            image.src = "https://www.transparenttextures.com/patterns/debut-light.png";
+            image.height = 50;
+            image.width = 50;
+          }
+        }
+      }
+    }
+  };
+  Checkers.prototype.showOrHideValidMove = function (x, y) {
+    for (var i = 0; i < 8; i++) {
+      for (var j = 0; j < 8; j++) {
+        var cell = this.getCell(i, j)
+        if (i % 2 == 0) {
+          if (j % 2 == 0) {
+            cell.className = "red";
+          } else {
+            cell.className = "black";
+          }
+        } else {
+          if (j % 2 == 0) {
+            cell.className = "black";
+          } else {
+            cell.className = "red";
+          }
+        }
+      }
+    }
+    for (var i = 0; i < this.validMoves.length; i++) {
+      var cell = this.getCell(this.validMoves[i].x, this.validMoves[i].y)
+      if (cell != null) {
+        cell.className = "validMoves";
+      }
+    }
+  }
+  Checkers.prototype.getImage = function(x, y) {
+    return document.getElementById('img_' + x + '_' + y);
+  }
+  Checkers.prototype.getCell = function(x, y) {
+    return document.getElementById('cell_' + x + '_' + y);
+  }
+  Checkers.prototype.printState = function () {
+    var state = {
+      turn: this.turn,
+      selectedX: this.selectedX,
+      selectedY: this.selectedY,
+      validMoves: this.validMoves,
+      totalValid: this.totalValid,
+      captured: this.capture,
+      board: this.board,
+    };
+    document.getElementById("state").value = JSON.stringify(state);
+  }
+  function restore () {
+    var checkers = new Checkers();
+    checkers.turn = JSON.parse(document.getElementById("state").value).turn
+    checkers.selectedY = JSON.parse(document.getElementById("state").value).selectedY
+    checkers.selectedX = JSON.parse(document.getElementById("state").value).selectedX
+    checkers.validMoves = JSON.parse(document.getElementById("state").value).validMoves
+    checkers.totalValid = JSON.parse(document.getElementById("state").value).totalValid
+    checkers.captured = JSON.parse(document.getElementById("state").value).captured
+    checkers.board = JSON.parse(document.getElementById("state").value).board
+    checkers.render();
+  }
+</script>
+</head>
+		<h2 style = "color:blue; display: none" id = "winner">
+		The winner is: <span id="whoWon"></span>
+	</h2>
+  Player Color: <input name="playerColor" id="playerColor" type="text" onchange="setWhoAmI()">
+  <body style="background-color:gold;">
+  <table cellspacing="0" cellpadding="10" border="1" style="float: left;">
+          <tbody>
+            <tr>
+              <td class="red" id="cell_0_0">
+                <img id="img_0_0" src="" />
+              </td>
+              <td class="black" id="cell_0_1">
+                <img id="img_0_1" src="" />
+              </td>
+              <td class="red" id="cell_0_2">
+                <img id="img_0_2" src="" />
+              </td>
+              <td class="black" id="cell_0_3">
+                <img id="img_0_3" src="" />
+              </td>
+              <td class="red" id="cell_0_4">
+                <img id="img_0_4" src="" />
+              </td>
+              <td class="black" id="cell_0_5">
+                <img id="img_0_5" src="" />
+              </td>
+              <td class="red" id="cell_0_6">
+                <img id="img_0_6" src="" />
+              </td>
+              <td class="black" id="cell_0_7">
+                <img id="img_0_7" src="" />
+              </td>
+            </tr>
+            <tr>
+              <td class="black" id="cell_1_0">
+                <img id="img_1_0" src="" />
+              </td>
+              <td class="red" id="cell_1_1">
+                <img id="img_1_1" src="" />
+              </td>
+              <td class="black" id="cell_1_2">
+                <img id="img_1_2" src="" />
+              </td>
+              <td class="red" id="cell_1_3">
+                <img id="img_1_3" src="" />
+              </td>
+              <td class="black" id="cell_1_4">
+                <img id="img_1_4" src="" />
+              </td>
+              <td class="red" id="cell_1_5">
+                <img id="img_1_5" src="" />
+              </td>
+              <td class="black" id="cell_1_6">
+                <img id="img_1_6" src="" />
+              </td>
+              <td class="red" id="cell_1_7">
+                <img id="img_1_7" src="" />
+              </td>
+            </tr>
+            <tr>
+              <td class="red" id="cell_2_0">
+                <img id="img_2_0" src="" />
+              </td>
+              <td class="black" id="cell_2_1">
+                <img id="img_2_1" src="" />
+              </td>
+              <td class="red" id="cell_2_2">
+                <img id="img_2_2" src="" />
+              </td>
+              <td class="black" id="cell_2_3">
+                <img id="img_2_3" src="" />
+              </td>
+              <td class="red" id="cell_2_4">
+                <img id="img_2_4" src="" />
+              </td>
+              <td class="black" id="cell_2_5">
+                <img id="img_2_5" src="" />
+              </td>
+              <td class="red" id="cell_2_6">
+                <img id="img_2_6" src="" />
+              </td>
+              <td class="black" id="cell_2_7">
+                <img id="img_2_7" src="" />
+              </td>
+            </tr>
+            <tr>
+              <td class="black" id="cell_3_0">
+                <img id="img_3_0" src="" />
+              </td>
+              <td class="red" id="cell_3_1">
+                <img id="img_3_1" src="" />
+              </td>
+              <td class="black" id="cell_3_2">
+                <img id="img_3_2" src="" />
+              </td>
+              <td class="red" id="cell_3_3">
+                <img id="img_3_3" src="" />
+              </td>
+              <td class="black" id="cell_3_4">
+                <img id="img_3_4" src="" />
+              </td>
+              <td class="red" id="cell_3_5">
+                <img id="img_3_5" src="" />
+              </td>
+              <td class="black" id="cell_3_6">
+                <img id="img_3_6" src="" />
+              </td>
+              <td class="red" id="cell_3_7">
+                <img id="img_3_7" src="" />
+              </td>
+            </tr>
+            <tr>
+              <td class="red" id="cell_4_0">
+                <img id="img_4_0" src="" />
+              </td>
+              <td class="black" id="cell_4_1">
+                <img id="img_4_1" src="" />
+              </td>
+              <td class="red" id="cell_4_2">
+                <img id="img_4_2" src="" />
+              </td>
+              <td class="black" id="cell_4_3">
+                <img id="img_4_3" src="" />
+              </td>
+              <td class="red" id="cell_4_4">
+                <img id="img_4_4" src="" />
+              </td>
+              <td class="black" id="cell_4_5">
+                <img id="img_4_5" src="" />
+              </td>
+              <td class="red" id="cell_4_6">
+                <img id="img_4_6" src="" />
+              </td>
+              <td class="black" id="cell_4_7">
+                <img id="img_4_7" src="" />
+              </td>
+            </tr>
+            <tr>
+              <td class="black" id="cell_5_0">
+                <img id="img_5_0" src="" />
+              </td>
+              <td class="red" id="cell_5_1">
+                <img id="img_5_1" src="" />
+              </td>
+              <td class="black" id="cell_5_2">
+                <img id="img_5_2" src="" />
+              </td>
+              <td class="red" id="cell_5_3">
+                <img id="img_5_3" src="" />
+              </td>
+              <td class="black" id="cell_5_4">
+                <img id="img_5_4" src="" />
+              </td>
+              <td class="red" id="cell_5_5">
+                <img id="img_5_5" src="" />
+              </td>
+              <td class="black" id="cell_5_6">
+                <img id="img_5_6" src="" />
+              </td>
+              <td class="red" id="cell_5_7">
+                <img id="img_5_7" src="" />
+              </td>
+            </tr>
+            <tr>
+              <td class="red" id="cell_6_0">
+                <img id="img_6_0" src="" />
+              </td>
+              <td class="black" id="cell_6_1">
+                <img id="img_6_1" src="" />
+              </td>
+              <td class="red" id="cell_6_2">
+                <img id="img_6_2" src="" />
+              </td>
+              <td class="black" id="cell_6_3">
+                <img id="img_6_3" src="" />
+              </td>
+              <td class="red" id="cell_6_4">
+                <img id="img_6_4" src="" />
+              </td>
+              <td class="black" id="cell_6_5">
+                <img id="img_6_5" src="" />
+              </td>
+              <td class="red" id="cell_6_6">
+                <img id="img_6_6" src="" />
+              </td>
+              <td class="black" id="cell_6_7">
+                <img id="img_6_7" src="" />
+              </td>
+            </tr>
+            <tr>
+              <td class="black" id="cell_7_0">
+                <img id="img_7_0" src="" />
+              </td>
+              <td class="red" id="cell_7_1">
+                <img id="img_7_1" src="" />
+              </td>
+              <td class="black" id="cell_7_2">
+                <img id="img_7_2" src="" />
+              </td>
+              <td class="red" id="cell_7_3">
+                <img id="img_7_3" src="" />
+              </td>
+              <td class="black" id="cell_7_4">
+                <img id="img_7_4" src="" />
+              </td>
+              <td class="red" id="cell_7_5">
+                <img id="img_7_5" src="" />
+              </td>
+              <td class="black" id="cell_7_6">
+                <img id="img_7_6" src="" />
+              </td>
+              <td class="red" id="cell_7_7">
+                <img id="img_7_7" src="" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+		    <br>
+		    </br>
+		    <textarea id="state" rows="20" cols="100">
+				</textarea>
+	<button type="button" onclick="restore()">Restore</button>
+      </div>
+    </div>
+  </body>
+</html>
+<script type="text/javascript">
+  var checkers = new Checkers();
+</script>
