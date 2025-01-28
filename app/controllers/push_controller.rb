@@ -15,9 +15,11 @@ class PushController < ApplicationController
   
   def send_message
     data = params[:data]
+    game_id = params[:game_id] || 'my-event'
     # message = params[:message]
     $stderr.puts "Data: #{data}"
-    @pusher.trigger('my-channel', 'my-event', data)
+    $stderr.puts "Game Id: #{game_id}"    
+    @pusher.trigger('my-channel', game_id, data)
     render json: {success: true}
   end
 end

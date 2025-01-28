@@ -4,40 +4,18 @@
 //PUSHER
   var pusherKey = '<%= Rails.configuration.pusher[:key] %>';
   var pusherCluster = '<%= Rails.configuration.pusher[:cluster] %>';
-  var eventName = 'my-event';
+  var game_id = 'my-event456789';
   $( document ).ready(function() {
     var pusher = new Pusher(pusherKey, {
       cluster: pusherCluster
     });
     var channel = pusher.subscribe("my-channel");
-    channel.bind(eventName, (data) => {
-      (data);
-    });
-  });
-  function sendMessage() {
-    $.post( "/push/send_message", {eventName: eventName, username: $('#username').val(), message: $('#message').val()}, function( data ) {
-      //console.log("Submitted");
-
-    });
-  }
-
-  function addMessageLog(username, message) {
-    var msg = new Date() + "\nSent by: " + (username == $('#username').val() ? "ME" : "OPPONENT") + "\n" + message + "\n\n" + $('#messages').val()
-    $('#messages').val(msg);
-  } 
-
-  $( document ).ready(function() {
-    var pusher = new Pusher(pusherKey, {
-      cluster: pusherCluster
-    });
-    var channel = pusher.subscribe("my-channel");
-    channel.bind('my-event', (data) => {
+    channel.bind(game_id, (data) => {
       processPushData(data);
     });
   });
 
   function processPushData(data) {
-    //addMessageLog(data.username, data.message);
     //console.log(data);
     if (data.player != whoAmI && data.type == 'move') {
       makeMove('network', data.row, data.col);
@@ -46,7 +24,8 @@
 
   function sendMoveToOpponent(row, col) {
     var payload = {
-      data: {type: 'move', player: whoAmI, row: row, col: col}
+      data: {type: 'move', player: whoAmI, row: row, col: col},
+      game_id: game_id
     };
     $.post( "/push/send_message", payload, function( data ) {
       //console.log("Submitted");
