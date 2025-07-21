@@ -1,167 +1,355 @@
 <h1>Tic Tac Toe</h1>
 
+
+
+
 <script type="text/javascript">
-//PUSHER
-  var pusherKey = '<%= Rails.configuration.pusher[:key] %>';
-  var pusherCluster = '<%= Rails.configuration.pusher[:cluster] %>';
-  var game_id = 'my-event456789';
-  $( document ).ready(function() {
-    var pusher = new Pusher(pusherKey, {
-      cluster: pusherCluster
-    });
-    var channel = pusher.subscribe("my-channel");
-    channel.bind(game_id, (data) => {
-      processPushData(data);
-    });
+// PUSHER
+var pusherKey = '<%= Rails.configuration.pusher[:key] %>';
+var pusherCluster = '<%= Rails.configuration.pusher[:cluster] %>';
+
+var game_id = null;
+var whoAmI = null;
+var selectionTimes = { "X": null, "O": null };
+var isX = true;
+var board = [["", "", ""], ["", "", ""], ["", "", ""]];
+var isGameOver = false;
+var pusher, channel;
+
+//UI Controls
+function showGameIdUI() {
+ document.getElementById("startJoinContainer").style.display = "none";
+ document.getElementById("gameIdContainer").style.display = "block";
+}
+
+function showLetterSelectUI() {
+ document.getElementById("gameIdContainer").style.display = "none";
+ document.getElementById("letterPickContainer").style.display = "block";
+}
+
+function showBoardUI() {
+  document.getElementById("letterPickContainer").style.display = "none";
+  document.getElementById("boardContainer").style.display = "block";
+
+  document.getElementById("roleDisplay").innerText = "You are " + whoAmI;
+  document.getElementById("roleDisplay").style.display = "block";
+}
+
+
+// START GAME - generates new game id
+function startGame() {
+  console.log(Date.now);
+  game_id = "game-" + Date.now();
+  document.getElementById("game_ID").value = game_id;
+  alert("Game created! Share this Game ID: " + game_id);
+}
+
+
+// JOIN GAME - uses typed game id
+function joinGame() {
+  game_id = document.getElementById("game_ID").value;
+  if (!game_id) {
+    //alert("Enter a valid Game ID to join.");
+    return;
+  }
+}
+
+
+
+
+// SUBMIT GAME ID manually
+function setGameID() {
+  game_id = document.getElementById('game_ID').value;
+  var pusher = new Pusher(pusherKey, {
+    cluster: pusherCluster
   });
+  var channel = pusher.subscribe("my-channel");
+  channel.bind(game_id, (data) => {
+    processPushData(data);
+  });
+}
 
-  function processPushData(data) {
-    //console.log(data);
-    if (data.player != whoAmI && data.type == 'move') {
-      makeMove('network', data.row, data.col);
-    }
+
+// LETTER SELECTION
+function setWhoAmI(letter) {
+  var timestamp = Date.now();
+  selectionTimes[letter] = timestamp;
+  whoAmI = letter;
+  console.log("You chose:", letter, "at", timestamp);
+  sendLetterSelection(letter, timestamp);
+}
+
+
+
+
+function sendLetterSelection(letter, time) {
+  var payload = {
+    type: 'letterSelection',
+    player: whoAmI,
+    letterSelected: letter,
+    time: time
+  };
+  $.post("/push/send_message", { data: payload, game_id: game_id });
+  processLetterSelection(payload);
+}
+
+
+
+
+function processLetterSelection(data) {
+  const { letterSelected, time } = data;
+  if (selectionTimes[letterSelected] === null || time < selectionTimes[letterSelected]) {
+    selectionTimes[letterSelected] = time;
+    whoAmI = (letterSelected === "X") ? "O" : "X";
+  } else if (!whoAmI) {
+    whoAmI = letterSelected;
   }
+  console.log("Role resolved to:", whoAmI);
+}
 
-  function sendMoveToOpponent(row, col) {
-    var payload = {
-      data: {type: 'move', player: whoAmI, row: row, col: col},
-      game_id: game_id
-    };
-    $.post( "/push/send_message", payload, function( data ) {
-      //console.log("Submitted");
-    });
-    processPushData(payload);
+
+
+
+// GAME NETWORKING
+function sendMoveToOpponent(row, col) {
+  var payload = {
+    type: 'move',
+    player: whoAmI,
+    row: row,
+    col: col
+  };
+  $.post("/push/send_message", { data: payload, game_id: game_id });
+  processPushData(payload);
+}
+
+
+
+
+function processPushData(data) {
+  if (data.player !== whoAmI && data.type === 'move') {
+    makeMove('network', data.row, data.col);
   }
+}
 
-  //TIC TAC TOE CODE
-  var imageX = "https://e7.pngegg.com/pngimages/255/685/png-clipart-tic-tac-toe-computer-icons-others-miscellaneous-angle.png";
-  var imageO = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJpTHLs03dWD8fSlVnypMoalGfITxPtNWiPA&s";
-  var isX = true;
-  const board = [["","",""],["","",""],["","",""]];
-  var whoAmI = null;
-  isGameOver = false;
 
-  function setWhoAmI() {
-    whoAmI = document.getElementById('username').value;
-  }
 
-  function initializeBoard() {
-    for (var i = 1; i <= 3; i++) {
-      for (var j = 1; j <= 3; j++) {
-        board[i-1][j-1] = "";
-      }
-    }
-    isX = true;
-    displayBoard();
-  }
 
-  function displayBoard() {
-    var cellID;
-    for (var i = 1; i <= 3; i++) {
-      for (var j = 1; j <= 3; j++) {
-        cellID = createCellId(i,j);
-        if (board[i-1][j-1] == "X") {
-          document.getElementById(cellID).innerHTML = "<img height='150px' width='150px' src='" + imageX + "'/>";
-        } else if (board[i-1][j-1] == "O") {
-          document.getElementById(cellID).innerHTML = "<img height='150px' width='150px' src='" + imageO + "'/>";
-        } else {
-          document.getElementById(cellID).innerHTML = "";
-        }
-      }
-    }
-  }
+// GAME LOGIC
+function createCellId(row, col) {
+  return "cell" + row + col;
+}
 
-  function createCellId(row, col) {
-    return ("cell" + row + col);
-  } 
 
-  function whoseTurn(isX) {
-    var val;
-    val = (isX) ? val = "X" : val = "O";
-    return val;
-  }
 
-  function changeTurn(isX) {
-    var val;
-    val = (isX == true) ? isX = false : isX = true;
-    return val;
-  }
 
-  function makeMove(source, row, col) {
-    if (!isGameOver) {
-      if (source == 'local' && (whoAmI == "X" && isX) || (whoAmI == "O" && !isX)) {
-        var turn = whoseTurn(isX);
-        if (board[row-1][col-1] == "") {
-          board[row-1][col-1] = turn;
-          sendMoveToOpponent(row, col);
-          displayBoard();
-          isX = changeTurn(isX);
-        }
-      } else if (source == 'network' && whoAmI != turn) {
-          var turn = whoseTurn(isX);
-          board[row-1][col-1] = turn;
-          displayBoard();
-          isX = changeTurn(isX);
-      }
-      checkForWin();
-    }
-  }
-
-  function checkForWin() {
-    //Checking rows
-    checkCoordinates(1, 1, 1, 2, 1, 3);
-    checkCoordinates(2, 1, 2, 2, 2, 3);
-    checkCoordinates(3, 1, 3, 2, 3, 3);
-    //Checking columns
-    checkCoordinates(1, 1, 2, 1, 3, 1);
-    checkCoordinates(1, 2, 2, 2, 3, 2);
-    checkCoordinates(1, 3, 2, 3, 3, 3);
-    //Checking diagonal
-    checkCoordinates(1, 1, 2, 2, 3, 3);
-    checkCoordinates(1, 3, 2, 2, 3, 1);
-  }
-
-  function checkCoordinates(x1, y1, x2, y2, x3, y3) {
-    if (board[x1-1][y1-1] == board[x2-1][y2-1] && board[x3-1][y3-1] == board[x1-1][y1-1] && board[x1-1][y1-1] != "") {
-      isGameOver = true;
-      if (whoAmI == board[x1-1][y1-1]) {
-        alert("You WON!")
+function displayBoard() {
+  for (var i = 1; i <= 3; i++) {
+    for (var j = 1; j <= 3; j++) {
+      var cellID = createCellId(i, j);
+      if (board[i-1][j-1] === "X") {
+        document.getElementById(cellID).innerHTML = "<img height='150px' width='150px' src='https://e7.pngegg.com/pngimages/255/685/png-clipart-tic-tac-toe-computer-icons-others-miscellaneous-angle.png'/>";
+      } else if (board[i-1][j-1] === "O") {
+        document.getElementById(cellID).innerHTML = "<img height='150px' width='150px' src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJpTHLs03dWD8fSlVnypMoalGfITxPtNWiPA&s'/>";
       } else {
-        alert("You lost");
+        document.getElementById(cellID).innerHTML = "";
       }
     }
   }
+}
 
+
+
+
+function whoseTurn(isX) {
+  return isX ? "X" : "O";
+}
+
+
+
+
+function changeTurn(isX) {
+  return !isX;
+}
+
+
+
+
+function makeMove(source, row, col) {
+  if (!isGameOver) {
+    var turn = whoseTurn(isX);
+    if (source === 'local' && whoAmI === turn && board[row-1][col-1] === "") {
+      board[row-1][col-1] = turn;
+      sendMoveToOpponent(row, col);
+      displayBoard();
+      isX = changeTurn(isX);
+    } else if (source === 'network' && board[row-1][col-1] === "") {
+      board[row-1][col-1] = turn;
+      displayBoard();
+      isX = changeTurn(isX);
+    }
+    checkForWin();
+  }
+}
+
+
+
+
+function checkForWin() {
+  checkCoordinates(1,1,1,2,1,3);
+  checkCoordinates(2,1,2,2,2,3);
+  checkCoordinates(3,1,3,2,3,3);
+  checkCoordinates(1,1,2,1,3,1);
+  checkCoordinates(1,2,2,2,3,2);
+  checkCoordinates(1,3,2,3,3,3);
+  checkCoordinates(1,1,2,2,3,3);
+  checkCoordinates(1,3,2,2,3,1);
+}
+
+
+
+
+function checkCoordinates(x1, y1, x2, y2, x3, y3) {
+  if (board[x1-1][y1-1] === board[x2-1][y2-1] &&
+      board[x2-1][y2-1] === board[x3-1][y3-1] &&
+      board[x1-1][y1-1] !== "") {
+    isGameOver = true;
+    if (whoAmI === board[x1-1][y1-1]) {
+      alert("You WON!");
+    } else {
+      alert("You lost.");
+    }
+  }
+}
 </script>
 
-UserName: <input name="username" id="username" type="text" onchange="setWhoAmI()">
 
-<!-- Reset Button -->
-<button type="button" onclick="initializeBoard()">Reset</button>
-<br />
-<br />
 
-<!-- Game Board -->
-<table>
-  <tr>
-    <td>
-      <table border="1">
-        <tr>
-          <td id="cell11" height="150px" width="150px" onclick="makeMove('local', 1, 1)"></td>
-          <td id="cell12" height="150px" width="150px" onclick="makeMove('local', 1, 2)"></td>
-          <td id="cell13" height="150px" width="150px" onclick="makeMove('local', 1, 3)"></td>
-        </tr>
-        <tr>
-          <td id="cell21" height="150px" width="150px" onclick="makeMove('local', 2, 1)"></td>
-          <td id="cell22" height="150px" width="150px" onclick="makeMove('local', 2, 2)"></td>
-          <td id="cell23" height="150px" width="150px" onclick="makeMove('local', 2, 3)"></td>
-        </tr>
-        <tr>
-          <td id="cell31" height="150px" width="150px" onclick="makeMove('local', 3, 1)"></td>
-          <td id="cell32" height="150px" width="150px" onclick="makeMove('local', 3, 2)"></td>
-          <td id="cell33" height="150px" width="150px" onclick="makeMove('local', 3, 3)"></td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-</table>
+
+<style>
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(to bottom, #f0f4f8, #dfe9f3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px;
+}
+
+
+h1 {
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: #333;
+  text-shadow: 1px 1px 2px #ccc;
+}
+
+button {
+  padding: 10px 20px;
+  margin: 5px;
+  font-size: 18px;
+  border: none;
+  border-radius: 8px;
+  background-color: #4a90e2;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+button:hover {
+  background-color: #357ABD;
+}
+
+input[type="text"] {
+  padding: 8px 12px;
+  font-size: 16px;
+  margin: 5px;
+  border-radius: 6px;
+  border: 1px solid #aaa;
+}
+
+table {
+  border-collapse: collapse;
+  margin-top: 30px;
+}
+
+td {
+  border: 2px solid #555;
+  text-align: center;
+  vertical-align: middle;
+  background-color: white;
+}
+
+td img {
+  display: block;
+  margin: auto;
+}
+
+#roleDisplay, #turnDisplay {
+  font-size: 24px;
+  margin: 20px;
+  color: #444;
+  font-weight: bold;
+  display: none;
+}
+
+#game_ID {
+  width: 200px;
+}
+</style>
+
+
+<!-- HTML UI -->
+
+<div id="startJoinContainer">
+ <button onclick="startGame(); showGameIdUI()">Start Game</button>
+ <button onclick="joinGame(); showGameIdUI()">Join Game</button>
+</div>
+
+
+<div id="gameIdContainer" style="display:none;">
+ <br />
+ Game ID: <input name="game_ID" id="game_ID" type="text">
+ <button type="button" onclick="setGameID(); showLetterSelectUI()">Submit</button>
+ <br /><br />
+</div>
+
+
+<div id="letterPickContainer" style="display:none;">
+ <button onclick="setWhoAmI('X'); showBoardUI()">Pick X</button>
+ <button onclick="setWhoAmI('O'); showBoardUI()">Pick O</button>
+ <br /><br />
+</div>
+
+<div id="roleDisplay"></div>
+<div id="turnDisplay"></div>
+
+<div id="boardContainer" style="display:none;">
+ <table>
+   <tr>
+     <td>
+       <table border="1">
+         <tr>
+           <td id="cell11" height="150px" width="150px" onclick="makeMove('local', 1, 1)"></td>
+           <td id="cell12" height="150px" width="150px" onclick="makeMove('local', 1, 2)"></td>
+           <td id="cell13" height="150px" width="150px" onclick="makeMove('local', 1, 3)"></td>
+         </tr>
+         <tr>
+           <td id="cell21" height="150px" width="150px" onclick="makeMove('local', 2, 1)"></td>
+           <td id="cell22" height="150px" width="150px" onclick="makeMove('local', 2, 2)"></td>
+           <td id="cell23" height="150px" width="150px" onclick="makeMove('local', 2, 3)"></td>
+         </tr>
+         <tr>
+           <td id="cell31" height="150px" width="150px" onclick="makeMove('local', 3, 1)"></td>
+           <td id="cell32" height="150px" width="150px" onclick="makeMove('local', 3, 2)"></td>
+           <td id="cell33" height="150px" width="150px" onclick="makeMove('local', 3, 3)"></td>
+         </tr>
+       </table>
+     </td>
+   </tr>
+ </table>
+</div>
+
+
+
+
+
