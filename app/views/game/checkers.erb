@@ -4,121 +4,248 @@
   <meta charset="UTF-8">
   <title>Checkers</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-  <style type="text/css">
-    body.game-body {
-      background-color: #f7f9fb;
-      font-family: 'Roboto', sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      margin: 0;
-    }
+  <style>
+body.game-body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(to bottom, #f0f4f8, #dfe9f3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px;
+  margin: 0;
+}
 
-    .title {
-      text-align: center;
-      font-size: 48px;
-      font-weight: 700;
-      color: #333;
-      margin-bottom: 10px;
-    }
+h1.title {
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: #333;
+  text-shadow: 1px 1px 2px #ccc;
+}
 
-    .winner-banner {
-      font-size: 24px;
-      font-weight: bold;
-      color: #2c7be5;
-      background-color: #e9f2ff;
-      border: 2px solid #2c7be5;
-      border-radius: 8px;
-      padding: 10px 20px;
-      margin: 20px 0;
-    }
+#winner {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffffff;
+  background-color: #27ae60;
+  padding: 10px 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+  display: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
 
-    .controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-      font-size: 18px;
-      color: #444;
-    }
+button {
+  padding: 10px 20px;
+  margin: 5px;
+  font-size: 18px;
+  border: none;
+  border-radius: 8px;
+  background-color: #4a90e2;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
 
-    .board {
-      border-collapse: collapse;
-      margin: 0 auto;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
-      border-radius: 8px;
-      overflow: hidden;
-    }
+button:hover {
+  background-color: #357ABD;
+  transform: translateY(-1px);
+}
 
-    .board td {
-      width: 70px;
-      height: 70px;
-      padding: 0;
-      transition: background-color 0.2s ease;
-    }
+input[type="text"] {
+  padding: 8px 12px;
+  font-size: 16px;
+  margin: 5px;
+  border-radius: 6px;
+  border: 1px solid #aaa;
+}
 
-    .board td img {
-      display: block;
-      margin: auto;
-      height: 60px;
-      width: 60px;
-    }
+#game_ID {
+  width: 200px;
+}
 
-    .red {
-      background-color: #d18b47;
-    }
+#roleDisplay {
+  font-size: 20px;
+  font-weight: bold;
+  margin: 15px;
+  color: #444;
+  display: none;
+}
 
-    .black {
-      background-color: #ffce9e;
-    }
+table.board {
+  border-collapse: collapse;
+  margin: 30px 0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+}
 
-    .validMoves {
-      background-color: rgba(0, 255, 0, 0.4);
-    }
+.board td {
+  width: 75px;
+  height: 75px;
+  padding: 0;
+  transition: transform 0.15s ease;
+}
 
-    #state {
-      width: 80%;
-      max-width: 800px;
-      height: 200px;
-      padding: 10px;
-      font-family: monospace;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      margin: 20px 0;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-    }
+.board td:hover {
+  transform: scale(1.04);
+}
 
-    button {
-      background-color: #2c7be5;
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      font-size: 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-    }
+.board td img {
+  display: block;
+  margin: auto;
+  width: 65px;
+  height: 65px;
+}
 
-    button:hover {
-      background-color: #1b61c1;
-    }
-  </style>
+.red {
+  background-color: #a94e28;
+}
+
+.black {
+  background-color: #f3c88c;
+}
+
+.validMoves {
+  background-color: rgba(46, 204, 113, 0.5);
+  border: 2px dashed #2ecc71;
+}
+
+#state {
+  width: 80%;
+  max-width: 800px;
+  height: 180px;
+  padding: 12px;
+  font-family: monospace;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-top: 20px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+</style>
+
 </head>
 <body class="game-body">
   <h1 class="title">Checkers</h1>
-
-  <div class="controls">
-    <label for="playerColor">Player Color:</label>
-    <input name="playerColor" id="playerColor" type="text" onchange="setWhoAmI()">
-  </div>
 
   <div class="winner-banner" id="winner" style="display: none;">
     The winner is: <span id="whoWon"></span>
   </div>
 
   <script type="text/javascript">
+
+// START GAME - generates new game id
+function startGame() {
+  console.log(Date.now);
+  game_id = "game-" + Date.now();
+  document.getElementById("game_ID").value = game_id;
+  alert("Game created! Share this Game ID: " + game_id);
+}
+
+
+// JOIN GAME - uses typed game id
+function joinGame() {
+  game_id = document.getElementById("game_ID").value;
+  if (!game_id) {
+    //alert("Enter a valid Game ID to join.");
+    return;
+  }
+}
+
+function showGameIdUI() {
+ document.getElementById("startJoinContainer").style.display = "none";
+ document.getElementById("gameIdContainer").style.display = "block";
+}
+
+function showLetterSelectUI() {
+ document.getElementById("gameIdContainer").style.display = "none";
+ document.getElementById("colorPickContainer").style.display = "block";
+}
+
+function showBoardUI() {
+  document.getElementById("colorPickContainer").style.display = "none";
+  document.getElementById("checkersBoard").style.display = "block";
+  if (whoAmI === "red") {
+    document.getElementById("roleDisplay").innerText = "You are Red";
+  } else if (whoAmI === "white") {
+    document.getElementById("roleDisplay").innerText = "You are White";
+  }
+  document.getElementById("roleDisplay").style.display = "block";
+}
+
+
+// SUBMIT GAME ID manually
+function setGameID() {
+  game_id = document.getElementById('game_ID').value;
+  var pusher = new Pusher(pusherKey, {
+    cluster: pusherCluster
+  });
+  var channel = pusher.subscribe("my-channel");
+  channel.bind(game_id, (data) => {
+    processPushData(checkers, data);
+  });
+} 
+
+function sendColorSelection(color, time) {
+  var payload = {
+    type: 'colorSelection',
+    player: whoAmI,
+    colorSelection: color,
+    time: time
+  };
+  $.post("/push/send_message", { data: payload, game_id: game_id });
+  processLetterSelection(payload);
+}
+
+function processLetterSelection(data) {
+  const { colorSelected, time } = data;
+  if (myChoiceTime === time && myColorChoice === colorSelected) {
+    return;
+  }
+  opponentColorSelected = colorSelected;
+  opponentChoiceTime = time;
+}
+
+function resolveColorChoice() {
+  if (!myColorChoice) return; 
+
+  if (!opponentColorSelected) {
+    whoAmI = myColorChoice;
+  } else {
+    if (myColorChoice === opponentColorChoice) {
+      if (myChoiceTime <= opponentChoiceTime) {
+        whoAmI = myColorChoice;
+      } else {
+        whoAmI = (myColorChoice === 'red') ? 'white' : 'red';
+      }
+    } else {
+      whoAmI = myColorChoice;
+    }
+  }
+
+  console.log("Role resolved to:", whoAmI);
+  var roleDiv = document.getElementById("roleDisplay");
+  if (roleDiv) {
+    document.getElementById("roleDisplay").style.display = "block";
+    roleDiv.innerText = "You are " + whoAmI;
+    console.log("al;sdkfj")
+  }
+  showBoardUI();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //PUSHER
  var pusherKey = '<%= Rails.configuration.pusher[:key] %>';
  var pusherCluster = '<%= Rails.configuration.pusher[:cluster] %>';
@@ -181,6 +308,10 @@
  //Checkers Code
  var BOARD_SIZE = 8;
  var whoAmI = null;
+ var myChoiceTime = null;
+ var myColorChoice;
+ var opponentChoiceTime = null;
+ var opponentColorSelected = null;
  var home = "file:///home/chronos/u-ac433ebf84a5304cffd17fdef62bcdb8294d57ef/MyFiles/New%20folder/programming/checkers.html"
  var Piece = function(color) {
    this.locked = false;
@@ -217,9 +348,18 @@
        };
      };
    };
- function setWhoAmI() {
-   whoAmI = document.getElementById('playerColor').value;
- }
+// COLOR SELECTION
+function setWhoAmI(color) {
+  var timestamp = Date.now();
+  myColorChoice = color;
+  myChoiceTime = timestamp;
+  whoAmI = color;
+  console.log("You chose:", color, "at", timestamp);
+  sendColorSelection(color, timestamp);
+  resolveColorChoice();
+}
+
+
  Checkers.prototype.setUpBoard = function () {
    this.board[0][1] = new Piece("white");
    this.board[0][3] = new Piece("white");
@@ -648,8 +788,29 @@ Checkers.prototype.resetAfterTurn = function (x, y) {
    <h2 style = "color:blue; display: none" id = "winner">
    The winner is: <span id="whoWon"></span>
  </h2>
+ <div id="startJoinContainer">
+ <button onclick="startGame(); showGameIdUI()">Start Game</button>
+ <button onclick="joinGame(); showGameIdUI()">Join Game</button>
+</div>
+
+
+<div id="gameIdContainer" style="display:none;">
+ <br />
+ Game ID: <input name="game_ID" id="game_ID" type="text">
+ <button type="button" onclick="setGameID(); showLetterSelectUI()">Submit</button>
+ <br /><br />
+</div>
+
+
+<div id="colorPickContainer" style="display:none;">
+ <button onclick="setWhoAmI('red'); showBoardUI()">Pick Red</button>
+ <button onclick="setWhoAmI('white'); showBoardUI()">Pick White</button>
+ <br /><br />
+</div>
+
+<div id="roleDisplay"></div>
  <body class="game-body">
- <table class="board" cellspacing="0" cellpadding="0" border="0">
+ <table class="board" id = "checkersBoard" cellspacing="0" cellpadding="0" border="0">
          <tbody>
            <tr>
              <td class="red" id="cell_0_0">
@@ -870,6 +1031,7 @@ Checkers.prototype.resetAfterTurn = function (x, y) {
   <script type="text/javascript">
     var checkers = new Checkers();
     document.getElementById("state").hidden = true;
+    document.getElementById("checkersBoard").hidden = true;
   </script>
 </body>
 </html>
