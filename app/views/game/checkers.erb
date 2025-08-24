@@ -706,13 +706,13 @@ Checkers.prototype.findValidMoves = function (x, y) {
          var image = this.getImage(i,j);
          if (this.board[i][j].color == "white") {
            if (this.board[i][j].isKinged) {
-             image.src = "https://thumbs.dreamstime.com/z/white-button-chrome-frame-round-glass-shiny-d-icon-white-button-chrome-frame-round-glass-shiny-d-icon-vector-119061735.jpg"
+             image.src = "/images/checkersCrownedWhite.png";
            } else {
              image.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Circle_-_black_simple.svg/768px-Circle_-_black_simple.svg.png";
            }
          } else if (this.board[i][j].color == "red") {
            if (this.board[i][j].isKinged) {
-             image.src = "https://img.favpng.com/22/11/0/circle-design-product-png-favpng-j80D5aX6iXBz670iZxwZRgSpj.jpg"
+            image.src = "/images/checkersRedKingedGPT.png";
            } else {
              image.src = "https://www.pngkit.com/png/full/79-790256_png-red-circle-red-point-transparent-background.png";
            }
