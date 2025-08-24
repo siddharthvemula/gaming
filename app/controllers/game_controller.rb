@@ -10,4 +10,13 @@ class GameController < ApplicationController
   def checkers
     render layout: "game"
   end
+
+  def chess
+    render layout: "game"
+  end
+
+  def memory_game
+    render layout: "game"
+  end
+  
 end

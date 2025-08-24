@@ -289,7 +289,7 @@ function resolveColorChoice() {
    //addMessageLog(data.username, data.message);
    console.log(data);
    if (data.color != whoAmI && data.type == 'move') {
-     thisObj.makeMove('network', data.color, data.x, data.y, data.ogX, data.ogY, data.isKinged);
+     thisObj.makeMove('network', data.color, parseInt(data.x), parseInt(data.y), parseInt(data.ogX), parseInt(data.ogY), data.isKinged);
    }
  }
 
@@ -415,7 +415,7 @@ function setWhoAmI(color) {
              this.selectedX = x;
              this.selectedY = y;
              this.board[x][y].isSelected = true;
-             this.findAllValid();
+             //this.findAllValid();
              this.findValidMoves(x, y);
            }
          }
@@ -462,7 +462,7 @@ function setWhoAmI(color) {
       this.validMoves = [];
 
       if (this.capture) {
-        this.findAllValid();
+        //this.findAllValid();
         this.findValidMoves(x, y);
         if (this.validMoves.length === 0) {
           this.resetAfterTurn(x, y);
@@ -488,16 +488,17 @@ function setWhoAmI(color) {
     }
   } else if (source == 'network') {
     isKinged = (isKinged == "false") ? false : true;
-
+    
+    this.placePiece(color, x, y, ogX, ogY, isKinged);
+    this.findWhatToFlip("network", x, y, ogX, ogY);
+    this.promoteChecker();
+    this.validMoves = [];
     
     if ((color === "red" && x === 0) || (color === "white" && x === 7)) {
       this.board[x][y].isKinged = true;
       isKinged = true;
     }
-    this.placePiece(color, x, y, ogX, ogY, isKinged);
-    this.findWhatToFlip("network", x, y, ogX, ogY);
-    this.promoteChecker();
-    this.validMoves = [];
+    
 
     if (this.captured) {
       this.findValidMoves(x, y);
@@ -533,48 +534,65 @@ Checkers.prototype.resetAfterTurn = function (x, y) {
   this.board[x][y].isSelected = false;
 };
 
- Checkers.prototype.findValidMoves = function (x, y) {
-   var oppositeColor = (this.board[x][y].color == "red") ? "white" : "red";
-   if (oppositeColor == "white" || this.board[x][y].isKinged) {
-     if (this.isOnBoard(x-1, y+1) && this.board[x-1][y+1] != null && this.board[x-1][y+1].color == oppositeColor) {
-       if (this.isOnBoard(x-2, y+2) && this.board[x-2][y+2] == null) {
-         this.validMoves.push({x: x - 2, y: y + 2})
-         this.totalValid++;
-       }
-     } else if (this.isOnBoard(x-1, y+1) && this.board[x-1][y+1] == null && !this.captured) {
-         this.validMoves.push({x: x - 1, y: y + 1})
-         this.totalValid++;
-     }
-     if (this.isOnBoard(x-1, y-1) && this.board[x-1][y-1] != null && this.board[x-1][y-1].color == oppositeColor) {
-       if (this.isOnBoard(x-2, y-2) && this.board[x-2][y-2] == null) {
-         this.validMoves.push({x: x - 2, y: y - 2})
-         this.totalValid++;
-       }
-     } else if (this.isOnBoard(x-1, y-1) && this.board[x-1][y-1] == null && !this.captured) {
-         this.validMoves.push({x: x - 1, y: y - 1})
-         this.totalValid++;
-     }
-   } else if (oppositeColor == "red" || this.board[x][y].isKinged) {
-     if (this.isOnBoard(x+1, y+1) && this.board[x+1][y+1] != null && this.board[x+1][y+1].color == oppositeColor) {
-       if (this.isOnBoard(x+2, y+2) && this.board[x+2][y+2] == null) {
-         this.validMoves.push({x: x + 2, y: y + 2})
-         this.totalValid++;
-       }
-     } else if (this.isOnBoard(x+1, y+1) && this.board[x+1][y+1] == null && !this.captured) {
-         this.validMoves.push({x: x + 1, y: y + 1})
-         this.totalValid++;
-     }
-     if (this.isOnBoard(x+1, y-1) && this.board[x+1][y-1] != null && this.board[x+1][y-1].color == oppositeColor) {
-       if (this.isOnBoard(x+2, y-2) && this.board[x+2][y-2] == null) {
-         this.validMoves.push({x: x + 2, y: y - 2})
-         this.totalValid++;
-       }
-     } else if (this.isOnBoard(x+1, y-1) && this.board[x+1][y-1] == null && !this.captured) {
-         this.validMoves.push({x: x + 1, y: y - 1})
-         this.totalValid++;
-     }
-   }
- }
+Checkers.prototype.findValidMovesForRed = function (x, y, oppositeColor) {
+  //red piece move
+  if (this.isOnBoard(x-1, y+1) && this.board[x-1][y+1] != null && this.board[x-1][y+1].color == oppositeColor) {
+    if (this.isOnBoard(x-2, y+2) && this.board[x-2][y+2] == null) {
+      this.validMoves.push({x: x - 2, y: y + 2})
+      this.totalValid++;
+    }
+  } else if (this.isOnBoard(x-1, y+1) && this.board[x-1][y+1] == null && !this.captured) {
+      this.validMoves.push({x: x - 1, y: y + 1})
+      this.totalValid++;
+  }
+  if (this.isOnBoard(x-1, y-1) && this.board[x-1][y-1] != null && this.board[x-1][y-1].color == oppositeColor) {
+    if (this.isOnBoard(x-2, y-2) && this.board[x-2][y-2] == null) {
+      this.validMoves.push({x: x - 2, y: y - 2})
+      this.totalValid++;
+    }
+  } else if (this.isOnBoard(x-1, y-1) && this.board[x-1][y-1] == null && !this.captured) {
+      this.validMoves.push({x: x - 1, y: y - 1})
+      this.totalValid++;
+  }
+  //console.log(this.board[x][y].isKinged)
+}
+
+Checkers.prototype.findValidMovesForWhite = function (x, y, oppositeColor) {
+  //white piece move
+  if (this.isOnBoard(x+1, y+1) && this.board[x+1][y+1] != null && this.board[x+1][y+1].color == oppositeColor) {
+    if (this.isOnBoard(x+2, y+2) && this.board[x+2][y+2] == null) {
+      this.validMoves.push({x: x + 2, y: y + 2})
+      this.totalValid++;
+    }
+  } else if (this.isOnBoard(x+1, y+1) && this.board[x+1][y+1] == null && !this.captured) {
+      this.validMoves.push({x: x + 1, y: y + 1})
+      this.totalValid++;
+  }
+  if (this.isOnBoard(x+1, y-1) && this.board[x+1][y-1] != null && this.board[x+1][y-1].color == oppositeColor) {
+    if (this.isOnBoard(x+2, y-2) && this.board[x+2][y-2] == null) {
+      this.validMoves.push({x: x + 2, y: y - 2})
+      this.totalValid++;
+    }
+  } else if (this.isOnBoard(x+1, y-1) && this.board[x+1][y-1] == null && !this.captured) {
+      this.validMoves.push({x: x + 1, y: y - 1})
+      this.totalValid++;
+  }
+}
+
+Checkers.prototype.findValidMoves = function (x, y) {
+  var oppositeColor = (this.board[x][y].color == "red") ? "white" : "red";
+  if (this.board[x][y].isKinged) {
+    this.findValidMovesForRed(x, y, oppositeColor);
+    this.findValidMovesForWhite(x, y, oppositeColor);
+  } else if (oppositeColor == "white") {
+    this.findValidMovesForRed(x, y, oppositeColor);
+  } else if (oppositeColor == "red") {
+    this.findValidMovesForWhite(x, y, oppositeColor);
+  }
+}
+
+
+
  Checkers.prototype.findAllValid = function () {
    var oppositeColor = (this.turn == "red") ? "white" : "red";
    for (var i = 0; i < BOARD_SIZE; i++) {

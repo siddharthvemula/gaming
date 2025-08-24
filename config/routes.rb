@@ -12,6 +12,8 @@ Rails.application.routes.draw do
     collection do
       get 'tic_tac_toe'
       get 'checkers'
+      get 'chess'
+      get 'memory_game'
     end
   end
 
