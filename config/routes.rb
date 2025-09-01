@@ -14,6 +14,7 @@ Rails.application.routes.draw do
       get 'checkers'
       get 'chess'
       get 'memory_game'
+      get 'othello'
     end
   end
 

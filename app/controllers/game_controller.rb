@@ -18,5 +18,9 @@ class GameController < ApplicationController
   def memory_game
     render layout: "game"
   end
+
+  def othelo
+    render layout: "game"
+  end
   
 end

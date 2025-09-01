@@ -1,12 +1,15 @@
 <h1>Tic Tac Toe</h1>
 
-
-
-
 <script type="text/javascript">
 // PUSHER
 var pusherKey = '<%= Rails.configuration.pusher[:key] %>';
 var pusherCluster = '<%= Rails.configuration.pusher[:cluster] %>';
+
+
+//AI integration
+var mode = "network";
+var humanLetter = "X";
+var aiLetter = "O";
 
 var game_id = null;
 var whoAmI = null;
@@ -72,6 +75,51 @@ function setGameID() {
 
 
 // LETTER SELECTION
+
+function showAIModeLetterSelect() {
+  mode = "ai";
+  // hide the first menu and any multiplayer UI
+  var m = document.getElementById("singleOrMultiPlayer");
+  if (m) m.style.display = "none";
+  var s = document.getElementById("startJoinContainer");
+  if (s) s.style.display = "none";
+  var g = document.getElementById("gameIdContainer");
+  if (g) g.style.display = "none";
+  // show AI letter picker
+  document.getElementById("aiLetterPickContainer").style.display = "block";
+}
+
+function setAIModeAs(letter) {
+  mode = "ai";
+  humanLetter = letter;
+  aiLetter = (letter === 'X') ? 'O' : 'X';
+  whoAmI = humanLetter;
+
+  // reset game state
+  isX = true;
+  isGameOver = false;
+  board = [["","",""],["","",""],["","",""]];
+
+  // show board
+  document.getElementById("aiLetterPickContainer").style.display = "none";
+  showBoardUI();
+  displayBoard();
+
+  // if AI is X, it moves first
+  if (whoseTurn(isX) === aiLetter) {
+    setTimeout(aiMakeMoveStrong, 350);
+  }
+}
+
+
+
+function selectNetworkMode() {
+  mode = "network";
+  document.getElementById("singleOrMultiPlayer").style.display = "none";
+  document.getElementById("startJoinContainer").style.display = "block";
+}
+
+
 function setWhoAmI(letter) {
   var timestamp = Date.now();
   myLetterChoice = letter;
@@ -81,8 +129,6 @@ function setWhoAmI(letter) {
   sendLetterSelection(letter, timestamp);
   resolveLetterChoice();
 }
-
-
 
 
 function sendLetterSelection(letter, time) {
@@ -127,7 +173,6 @@ function resolveLetterChoice() {
   if (roleDiv) {
     document.getElementById("roleDisplay").style.display = "block";
     roleDiv.innerText = "You are " + whoAmI;
-    console.log("al;sdkfj")
   }
 }
 
@@ -182,22 +227,145 @@ function changeTurn(isX) {
   return !isX;
 }
 
-function makeMove(source, row, col) {
-  if (!isGameOver) {
-    var turn = whoseTurn(isX);
-    if (source === 'local' && whoAmI === turn && board[row-1][col-1] === "") {
-      board[row-1][col-1] = turn;
-      sendMoveToOpponent(row, col);
-      displayBoard();
-      isX = changeTurn(isX);
-    } else if (source === 'network' && board[row-1][col-1] === "") {
-      board[row-1][col-1] = turn;
-      displayBoard();
-      isX = changeTurn(isX);
+function emptyCells() {
+  var cells = [];
+  for (var r = 0; r < 3; r++) {
+    for (var c = 0; c < 3; c++) {
+      if (board[r][c] === "") cells.push([r, c]);
     }
-    checkForWin();
   }
+  return cells;
 }
+
+
+function aiMakeMoveRandom() {
+  if (isGameOver) return;
+  var turn = whoseTurn(isX);
+  if (turn !== aiLetter) return; // only move on AI turn
+
+  var empties = emptyCells();
+  if (empties.length === 0) return;
+
+  var pick = empties[Math.floor(Math.random() * empties.length)];
+  var r = pick[0], c = pick[1];
+  board[r][c] = aiLetter;
+  displayBoard();
+  isX = changeTurn(isX);
+  checkForWin();
+}
+
+function lines() {
+  return [
+    [[0,0],[0,1],[0,2]], [[1,0],[1,1],[1,2]], [[2,0],[2,1],[2,2]],
+    [[0,0],[1,0],[2,0]], [[0,1],[1,1],[2,1]], [[0,2],[1,2],[2,2]],
+    [[0,0],[1,1],[2,2]], [[0,2],[1,1],[2,0]]
+  ];
+}
+
+function winnerOf(b) {
+  var L = lines();
+  for (var k = 0; k < L.length; k++) {
+    var a = b[L[k][0][0]][L[k][0][1]];
+    var c = b[L[k][1][0]][L[k][1][1]];
+    var d = b[L[k][2][0]][L[k][2][1]];
+    if (a !== "" && a === c && a === d) return a; // "X" or "O"
+  }
+  return null;
+}
+
+function isFull(b) {
+  for (var r = 0; r < 3; r++)
+    for (var c = 0; c < 3; c++)
+      if (b[r][c] === "") return false;
+  return true;
+}
+
+function minimax(b, currentPlayer) {
+  var w = winnerOf(b);
+  if (w === aiLetter)    return { score: +1 };
+  if (w === humanLetter) return { score: -1 };
+  if (isFull(b))         return { score: 0 };
+
+  var best = {
+    score: (currentPlayer === aiLetter ? -Infinity : +Infinity),
+    move: null
+  };
+
+  for (var r = 0; r < 3; r++) {
+    for (var c = 0; c < 3; c++) {
+      if (b[r][c] !== "") continue;
+
+      b[r][c] = currentPlayer;
+      var result = minimax(b, currentPlayer === aiLetter ? humanLetter : aiLetter);
+      b[r][c] = "";
+
+      if (currentPlayer === aiLetter) {
+        if (result.score > best.score) best = { score: result.score, move: [r, c] };
+      } else {
+        if (result.score < best.score) best = { score: result.score, move: [r, c] };
+      }
+    }
+  }
+  return best;
+}
+
+function aiMakeMoveStrong() {
+  if (isGameOver) return;
+  if (whoseTurn(isX) !== aiLetter) return;
+
+  var copy = JSON.parse(JSON.stringify(board));
+  var best = minimax(copy, aiLetter);
+  var r = best.move ? best.move[0] : null;
+  var c = best.move ? best.move[1] : null;
+
+  if (r === null) {
+    var empties = emptyCells();
+    if (empties.length === 0) return;
+    var pick = empties[Math.floor(Math.random() * empties.length)];
+    r = pick[0]; c = pick[1];
+  }
+
+  board[r][c] = aiLetter;
+  displayBoard();
+  isX = changeTurn(isX);
+  checkForWin();
+}
+
+
+
+function makeMove(source, row, col) {
+  if (isGameOver) return;
+
+  var turn = whoseTurn(isX);
+
+  if (mode === "ai") {
+    // Human move
+    if (source === 'local' && turn === whoAmI && board[row-1][col-1] === "") {
+      board[row-1][col-1] = whoAmI;
+      displayBoard();
+      isX = changeTurn(isX);
+      checkForWin();
+      // AI replies (small delay feels nicer)
+      if (!isGameOver) {
+        setTimeout(aiMakeMoveRandom, 500);
+      }
+    }
+    return;
+  }
+
+  if (source === 'local' && whoAmI === turn && board[row-1][col-1] === "") {
+    board[row-1][col-1] = turn;
+    sendMoveToOpponent(row, col);
+    displayBoard();
+    isX = changeTurn(isX);
+  } else if (source === 'network' && board[row-1][col-1] === "") {
+    board[row-1][col-1] = turn;
+    displayBoard();
+    isX = changeTurn(isX);
+  }
+  checkForWin();
+}
+
 
 function checkForWin() {
   checkCoordinates(1,1,1,2,1,3);
@@ -224,8 +392,6 @@ function checkCoordinates(x1, y1, x2, y2, x3, y3) {
   }
 }
 </script>
-
-
 
 
 <style>
@@ -302,8 +468,17 @@ td img {
 
 
 <!-- HTML UI -->
+<div id="singleOrMultiPlayer" style="margin-bottom: 12px;">
+  <button onclick="showAIModeLetterSelect()">Single Player vs AI</button>
+  <button onclick="selectNetworkMode()">Multiplayer (Online)</button>
+</div>
 
-<div id="startJoinContainer">
+<div id="aiLetterPickContainer" style="display:none; margin-bottom:12px;">
+  <button onclick="setAIModeAs('X')">Play as X</button>
+  <button onclick="setAIModeAs('O')">Play as O</button>
+</div>
+
+<div id="startJoinContainer" style="display:none;">
  <button onclick="startGame(); showGameIdUI()">Start Game</button>
  <button onclick="joinGame(); showGameIdUI()">Join Game</button>
 </div>
