@@ -10,6 +10,8 @@ var pusherCluster = '<%= Rails.configuration.pusher[:cluster] %>';
 var mode = "network";
 var humanLetter = "X";
 var aiLetter = "O";
+var difficulty = "hard";
+
 
 var game_id = null;
 var whoAmI = null;
@@ -41,10 +43,25 @@ function showBoardUI() {
   document.getElementById("roleDisplay").style.display = "block";
 }
 
+function updateDifficultyMeter(level) {
+  // 1=easy, 2=medium, 3=hard
+  if (level === "1") {
+    difficulty = "easy";  
+    document.getElementById("aiDiffLabel").innerText = "Easy"; 
+  }
+  if (level === "2") {
+    difficulty = "medium";
+    document.getElementById("aiDiffLabel").innerText = "Medium";
+  }
+  if (level === "3") {
+    difficulty = "hard";
+    document.getElementById("aiDiffLabel").innerText = "Hard";
+  }
+}
+
 
 // START GAME - generates new game id
 function startGame() {
-  console.log(Date.now);
   game_id = "game-" + Date.now();
   document.getElementById("game_ID").value = game_id;
   alert("Game created! Share this Game ID: " + game_id);
@@ -76,19 +93,6 @@ function setGameID() {
 
 // LETTER SELECTION
 
-function showAIModeLetterSelect() {
-  mode = "ai";
-  // hide the first menu and any multiplayer UI
-  var m = document.getElementById("singleOrMultiPlayer");
-  if (m) m.style.display = "none";
-  var s = document.getElementById("startJoinContainer");
-  if (s) s.style.display = "none";
-  var g = document.getElementById("gameIdContainer");
-  if (g) g.style.display = "none";
-  // show AI letter picker
-  document.getElementById("aiLetterPickContainer").style.display = "block";
-}
-
 function setAIModeAs(letter) {
   mode = "ai";
   humanLetter = letter;
@@ -107,7 +111,7 @@ function setAIModeAs(letter) {
 
   // if AI is X, it moves first
   if (whoseTurn(isX) === aiLetter) {
-    setTimeout(aiMakeMoveStrong, 350);
+    setTimeout(aiMoveByDifficulty, 350);
   }
 }
 
@@ -237,6 +241,92 @@ function emptyCells() {
   return cells;
 }
 
+function showAIModeLetterSelect() {
+  mode = "ai";
+  var m = document.getElementById("singleOrMultiPlayer");
+  if (m) {
+    m.style.display = "none";
+  }
+  var s = document.getElementById("startJoinContainer");
+  if (s) {
+    s.style.display = "none";
+  }
+  var g = document.getElementById("gameIdContainer");
+  if (g) {
+    g.style.display = "none";
+  }
+
+  document.getElementById("aiLetterPickContainer").style.display = "block";
+  document.getElementById("aiDifficultyContainer").style.display = "block";
+}
+
+
+function aiMoveByDifficulty() {
+  if (isGameOver || whoseTurn(isX) !== aiLetter) return;
+  if (difficulty === "easy") {
+    aiMakeMoveRandom();
+  } else if (difficulty === "medium") {
+    aiMakeMoveMedium();
+  } else {
+    aiMakeMoveStrong();
+  }
+}
+
+function aiMakeMoveMedium() {
+  if (isGameOver) return;
+  if (whoseTurn(isX) !== aiLetter) return;
+
+
+  var move = findImmediateWin(aiLetter);
+  if (!move) {
+
+    move = findImmediateWin(humanLetter);
+  }
+  if (!move) {
+
+    if (board[1][1] === "") move = [1,1];
+  }
+  if (!move) {
+
+    var corners = [[0,0],[0,2],[2,0],[2,2]].filter(p => board[p[0]][p[1]] === "");
+    if (corners.length) move = corners[Math.floor(Math.random()*corners.length)];
+  }
+  if (!move) {
+
+    var sides = [[0,1],[1,0],[1,2],[2,1]].filter(p => board[p[0]][p[1]] === "");
+    if (sides.length) move = sides[Math.floor(Math.random()*sides.length)];
+  }
+  if (!move) {
+    // fallback
+    var empties = emptyCells();
+    if (!empties.length) return;
+    move = empties[Math.floor(Math.random()*empties.length)];
+  }
+
+  board[move[0]][move[1]] = aiLetter;
+  displayBoard();
+  isX = changeTurn(isX);
+  checkForWin();
+}
+
+
+function findImmediateWin(player) {
+  var L = lines();
+  for (var k = 0; k < L.length; k++) {
+    var a = L[k][0], b = L[k][1], c = L[k][2];
+    var vals = [board[a[0]][a[1]], board[b[0]][b[1]], board[c[0]][c[1]]];
+    var countPlayer = vals.filter(v => v === player).length;
+    var countEmpty  = vals.filter(v => v === "").length;
+    if (countPlayer === 2 && countEmpty === 1) {
+      // return the empty cell
+      if (vals[0] === "") return a;
+      if (vals[1] === "") return b;
+      if (vals[2] === "") return c;
+    }
+  }
+  return null;
+}
+
 
 function aiMakeMoveRandom() {
   if (isGameOver) return;
@@ -347,7 +437,7 @@ function makeMove(source, row, col) {
       checkForWin();
       // AI replies (small delay feels nicer)
       if (!isGameOver) {
-        setTimeout(aiMakeMoveRandom, 500);
+        setTimeout(aiMoveByDifficulty, 500);
       }
     }
     return;
@@ -471,6 +561,13 @@ td img {
 <div id="singleOrMultiPlayer" style="margin-bottom: 12px;">
   <button onclick="showAIModeLetterSelect()">Single Player vs AI</button>
   <button onclick="selectNetworkMode()">Multiplayer (Online)</button>
+</div>
+
+<div id="aiDifficultyContainer" style="display:none; margin:6px 0 12px;">
+  <label style="font-weight:600; margin-right:8px;">Difficulty:</label>
+  <input id="aiDiffSlider" type="range" min="1" max="3" step="1" value="3"
+         oninput="updateDifficultyMeter(this.value)" onchange="updateDifficultyMeter(this.value)" />
+  <span id="aiDiffLabel" style="margin-left:8px; font-weight:600;">Hard</span>
 </div>
 
 <div id="aiLetterPickContainer" style="display:none; margin-bottom:12px;">
