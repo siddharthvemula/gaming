@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Sids Games</title>
+  <title>Sid's Games</title>
   <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body {
@@ -17,40 +17,53 @@
     }
 
     h1 {
-      font-size: 48px;
-      margin-bottom: 40px;
+      font-size: 50px; /* title size */
+      margin-bottom: 26px;
       color: #333;
       text-shadow: 1px 1px 2px #ccc;
     }
 
+    .button-container {
+      display: grid;
+      grid-template-columns: repeat(2, auto);
+      gap: 16px 20px;
+      justify-content: center;
+    }
+
     .button {
       display: inline-block;
-      padding: 12px 24px;
-      margin: 12px;
-      font-size: 20px;
+      padding: 12px 28px; /* slightly more padding for bigger font */
+      font-size: 22px;    /* button text size */
       font-weight: bold;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       background-color: #4a90e2;
       color: white;
       text-decoration: none;
       text-align: center;
       transition: 0.3s ease;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
     }
 
     .button:hover {
       background-color: #357ABD;
       transform: translateY(-2px);
     }
+
+    .full-width {
+      grid-column: span 2;
+      justify-self: center;
+    }
   </style>
 </head>
 <body>
   <h1>Sid's Games</h1>
-  <a class="button" href="/game/tic_tac_toe">Play Tic Tac Toe</a>
-  <a class="button" href="/game/checkers">Play Checkers</a>
-  <a class="button" href="/game/chess">Play Chess</a>
-  <a class="button" href="/game/memory_game">Play Memory Game</a>
-  <a class="button" href="/game/othello">Play Othello</a>
+  <div class="button-container">
+    <a class="button" href="/game/tic_tac_toe">Play Tic Tac Toe</a>
+    <a class="button" href="/game/checkers">Play Checkers</a>
+    <a class="button" href="/game/chess">Play Chess</a>
+    <a class="button" href="/game/memory_game">Play Memory Game</a>
+    <a class="button full-width" href="/game/othello">Play Othello</a>
+  </div>
 </body>
 </html>
